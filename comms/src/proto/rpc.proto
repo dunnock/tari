@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package tari.comms.rpc;
+
+message RpcRequest {
+    uint32 request_id = 1;
+    uint32 method = 2;
+    bytes message = 4;
+}
+
+message RpcResponse {
+    uint32 request_id = 1;
+    uint32 method = 2;
+    uint32 status = 3;
+    string error = 4;
+    bytes message = 5;
+}

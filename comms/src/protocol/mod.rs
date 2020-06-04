@@ -32,6 +32,8 @@ pub use negotiation::ProtocolNegotiation;
 mod protocols;
 pub use protocols::{ProtocolEvent, ProtocolNotification, ProtocolNotificationRx, ProtocolNotificationTx, Protocols};
 
+mod rpc;
+
 pub mod messaging;
 
 /// Represents a protocol id string (e.g. /tari/transactions/1.0.0).
