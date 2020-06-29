@@ -53,6 +53,7 @@ use tari_core::{
         states::{
             BestChainMetadataBlockSyncInfo,
             BlockSyncConfig,
+            ChainBalanceValidator,
             HorizonStateSync,
             HorizonSyncConfig,
             HorizonSyncValidators,
@@ -120,7 +121,7 @@ fn test_listening_lagging() {
         alice_node.comms.connectivity(),
         alice_node.chain_metadata_handle.get_event_stream(),
         BaseNodeStateMachineConfig::default(),
-        HorizonSyncValidators::new(MockValidator::new(true)),
+        HorizonSyncValidators::new(MockValidator::new(true), MockValidator::new(true)),
         shutdown.to_signal(),
     );
     wait_until_online(&mut runtime, &[&alice_node, &bob_node]);
@@ -187,7 +188,7 @@ fn test_event_channel() {
         node.comms.connectivity(),
         mock.subscriber(),
         BaseNodeStateMachineConfig::default(),
-        HorizonSyncValidators::new(MockValidator::new(true)),
+        HorizonSyncValidators::new(MockValidator::new(true), MockValidator::new(true)),
         shutdown.to_signal(),
     );
     let rx = state_machine.get_state_change_event_stream();
@@ -266,7 +267,7 @@ fn test_block_sync() {
         alice_node.comms.connectivity(),
         alice_node.chain_metadata_handle.get_event_stream(),
         state_machine_config,
-        HorizonSyncValidators::new(MockValidator::new(true)),
+        HorizonSyncValidators::new(MockValidator::new(true), MockValidator::new(true)),
         shutdown.to_signal(),
     );
 
@@ -348,7 +349,7 @@ fn test_lagging_block_sync() {
         alice_node.comms.connectivity(),
         alice_node.chain_metadata_handle.get_event_stream(),
         state_machine_config,
-        HorizonSyncValidators::new(MockValidator::new(true)),
+        HorizonSyncValidators::new(MockValidator::new(true), MockValidator::new(true)),
         shutdown.to_signal(),
     );
 
@@ -447,7 +448,7 @@ fn test_block_sync_recovery() {
         alice_node.comms.connectivity(),
         alice_node.chain_metadata_handle.get_event_stream(),
         state_machine_config,
-        HorizonSyncValidators::new(MockValidator::new(true)),
+        HorizonSyncValidators::new(MockValidator::new(true), MockValidator::new(true)),
         shutdown.to_signal(),
     );
 
@@ -546,7 +547,7 @@ fn test_forked_block_sync() {
         alice_node.comms.connectivity(),
         alice_node.chain_metadata_handle.get_event_stream(),
         state_machine_config,
-        HorizonSyncValidators::new(MockValidator::new(true)),
+        HorizonSyncValidators::new(MockValidator::new(true), MockValidator::new(true)),
         shutdown.to_signal(),
     );
 
@@ -686,7 +687,7 @@ fn test_sync_peer_banning() {
         alice_node.comms.connectivity(),
         alice_node.chain_metadata_handle.get_event_stream(),
         state_machine_config,
-        HorizonSyncValidators::new(MockValidator::new(true)),
+        HorizonSyncValidators::new(MockValidator::new(true), MockValidator::new(true)),
         shutdown.to_signal(),
     );
 
@@ -825,7 +826,7 @@ fn test_pruned_mode_sync_with_future_horizon_sync_height() {
         alice_node.comms.connectivity(),
         alice_node.chain_metadata_handle.get_event_stream(),
         state_machine_config,
-        HorizonSyncValidators::new(MockValidator::new(true)),
+        HorizonSyncValidators::new(MockValidator::new(true), MockValidator::new(true)),
         shutdown.to_signal(),
     );
 
@@ -978,7 +979,14 @@ fn test_pruned_mode_sync_with_spent_utxos() {
         alice_node.comms.connectivity(),
         alice_node.chain_metadata_handle.get_event_stream(),
         state_machine_config,
-        HorizonSyncValidators::new(MockValidator::new(true)),
+        HorizonSyncValidators::new(
+            MockValidator::new(true),
+            ChainBalanceValidator::new(
+                alice_node.blockchain_db.clone(),
+                consensus_manager.clone(),
+                factories.clone(),
+            ),
+        ),
         shutdown.to_signal(),
     );
 

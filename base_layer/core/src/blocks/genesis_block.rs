@@ -144,6 +144,7 @@ mod test {
         consensus::{ConsensusManagerBuilder, Network},
         transactions::types::CryptoFactories,
     };
+    use tari_crypto::commitment::HomomorphicCommitmentFactory;
 
     #[test]
     fn rincewind_genesis_sanity_check() {
@@ -154,9 +155,21 @@ mod test {
         let coinbase = block.body.outputs().first().unwrap();
         assert!(coinbase.is_coinbase());
         coinbase.verify_range_proof(&factories.range_proof).unwrap();
+        assert_eq!(block.body.kernels().len(), 1);
         for kernel in block.body.kernels() {
             kernel.verify_signature().unwrap();
         }
+
+        let coinbase_kernel = block.body.kernels().first().unwrap();
+        assert!(coinbase_kernel.features.contains(KernelFeatures::COINBASE_KERNEL));
+        let coinbase = block.body.outputs().iter().find(|o| o.is_coinbase()).unwrap();
+
+        // BUG: Mainnet value was committed to in the Rincewind genesis block coinbase
+        let consensus_manager = ConsensusManagerBuilder::new(Network::MainNet).build();
+        let supply = consensus_manager.emission_schedule().supply_at_block(0);
+        let expected_kernel =
+            &coinbase.commitment - &factories.commitment.commit_value(&PrivateKey::default(), supply.into());
+        assert_eq!(coinbase_kernel.excess, expected_kernel);
     }
 
     #[test]
