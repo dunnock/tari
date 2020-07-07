@@ -21,7 +21,7 @@
 // USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 use crate::proof_of_work::error::DifficultyAdjustmentError;
-use bitflags::_core::ops::Div;
+use std::ops::Div;
 use newtype_ops::newtype_ops;
 use serde::{Deserialize, Serialize};
 use std::fmt;

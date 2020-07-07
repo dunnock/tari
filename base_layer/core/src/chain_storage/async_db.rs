@@ -121,6 +121,8 @@ make_async!(fetch_mmr_only_root(tree: MmrTree) -> HashOutput, "fetch_mmr_only_ro
 make_async!(fetch_mmr_proof(tree: MmrTree, pos: usize) -> MerkleProof, "fetch_mmr_proof");
 make_async!(fetch_mmr_root(tree: MmrTree) -> HashOutput, "fetch_mmr_root");
 make_async!(insert_mmr_node(tree: MmrTree, hash: Hash, deleted: bool) -> (), "insert_mmr_node");
+make_async!(create_mmr_checkpoint(tree: MmrTree) -> (), "create_mmr_checkpoint");
+make_async!(validate_merkle_root(tree: MmrTree, height: u64) -> bool, "validate_merkle_root");
 make_async!(rewind_to_height(height: u64) -> Vec<Block>, "rewind_to_height");
 
 pub async fn delete_mmr_node<T>(db: BlockchainDatabase<T>, tree: MmrTree, hash: Hash) -> Result<(), ChainStorageError>

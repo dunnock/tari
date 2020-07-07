@@ -224,6 +224,8 @@ pub trait BlockchainBackend: Send + Sync {
     fn count_utxos(&self) -> Result<usize, ChainStorageError>;
     /// Returns the kernel count
     fn count_kernels(&self) -> Result<usize, ChainStorageError>;
+    /// Validate the Merkle root for the given `MmrTree` matches the header at the given height
+    fn validate_merkle_root(&self, tree: MmrTree, height: u64) -> Result<bool, ChainStorageError>;
 }
 
 // Private macro that pulls out all the boiler plate of extracting a DB query result from its variants
@@ -549,6 +551,20 @@ where T: BlockchainBackend
     pub fn insert_mmr_node(&self, tree: MmrTree, hash: Hash, deleted: bool) -> Result<(), ChainStorageError> {
         let mut db = self.db_write_access()?;
         db.insert_mmr_node(tree, hash, deleted)
+    }
+
+    /// Create a MMR checkpoint for the given `MmrTree`
+    pub fn create_mmr_checkpoint(&self, tree: MmrTree) -> Result<(), ChainStorageError> {
+        let mut db = self.db_write_access()?;
+        let mut txn = DbTransaction::new();
+        txn.create_mmr_checkpoint(tree);
+        commit(&mut db, txn)
+    }
+
+    /// Validates the merkle root against the header at the given height
+    pub fn validate_merkle_root(&self, tree: MmrTree, height: u64) -> Result<bool, ChainStorageError> {
+        let db = self.db_read_access()?;
+        db.validate_merkle_root(tree, height)
     }
 
     /// Marks the MMR node corresponding to the provided hash as deleted.
@@ -956,7 +972,7 @@ fn block_exists<T: BlockchainBackend>(db: &T, hash: BlockHash) -> Result<bool, C
 
 fn check_for_valid_height<T: BlockchainBackend>(db: &T, height: u64) -> Result<u64, ChainStorageError> {
     let metadata = db.fetch_metadata()?;
-    let db_height = metadata.height_of_longest_chain.unwrap_or(0);
+    let db_height = metadata.height_of_longest_chain();
     if height > db_height {
         return Err(ChainStorageError::InvalidQuery(format!(
             "Cannot get block at height {}. Chain tip is at {}",
@@ -1586,6 +1602,10 @@ fn commit_horizon_state<T: BlockchainBackend>(db: &mut RwLockWriteGuard<T>) -> R
     let tip_header = db
         .fetch_last_header()?
         .ok_or_else(|| ChainStorageError::InvalidQuery("Cannot retrieve header. Blockchain DB is empty".into()))?;
+
+    // Merge all MMR checkpoints into a single checkpoint
+    // txn.merge_checkpoints_to_height(tip_header.height);
+
     txn.insert(DbKeyValuePair::Metadata(
         MetadataKey::ChainHeight,
         MetadataValue::ChainHeight(Some(tip_header.height)),

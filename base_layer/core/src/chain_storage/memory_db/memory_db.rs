@@ -54,7 +54,7 @@ use std::{
 };
 use tari_crypto::tari_utilities::{epoch_time::EpochTime, hash::Hashable, hex::Hex};
 use tari_mmr::{
-    functions::{prune_mutable_mmr, PrunedMutableMmr},
+    functions::{calculate_pruned_mmr_root, prune_mutable_mmr, PrunedMutableMmr},
     ArrayLike,
     ArrayLikeExt,
     Hash as MmrHash,
@@ -63,6 +63,7 @@ use tari_mmr::{
     MerkleProof,
     MmrCache,
     MmrCacheConfig,
+    MutableMmr,
 };
 
 /// A generic struct for storing node objects in the BlockchainDB that also form part of an MMR. The index field makes
@@ -509,7 +510,7 @@ where D: Digest + Send + Sync
     {
         let mut leaf_nodes = Vec::<(Vec<u8>, bool)>::with_capacity(count as usize);
         for pos in pos..pos + count {
-            leaf_nodes.push(self.fetch_mmr_node(tree.clone(), pos, hist_height)?);
+            leaf_nodes.push(self.fetch_mmr_node(tree, pos, hist_height)?);
         }
         Ok(leaf_nodes)
     }
@@ -670,6 +671,44 @@ where D: Digest + Send + Sync
         let db = self.db_access()?;
         Ok(db.kernels.len())
     }
+
+    fn validate_merkle_root(&self, tree: MmrTree, height: u64) -> Result<bool, ChainStorageError> {
+        let db = self.db_access()?;
+        let header = db.headers.get(&height).ok_or_else(|| {
+            ChainStorageError::InvalidQuery(format!(
+                "Requested header at height {} was not found when validating {} merkle root",
+                height, tree
+            ))
+        })?;
+
+        match tree {
+            MmrTree::Utxo => validate_merkle_root(&db.utxo_mmr, &db.curr_utxo_checkpoint, &header.output_mr),
+            MmrTree::Kernel => validate_merkle_root(&db.kernel_mmr, &db.curr_kernel_checkpoint, &header.kernel_mr),
+            MmrTree::RangeProof => validate_merkle_root(
+                &db.range_proof_mmr,
+                &db.curr_range_proof_checkpoint,
+                &header.range_proof_mr,
+            ),
+        }
+    }
+}
+
+fn validate_merkle_root<D, B>(
+    mmr: &MutableMmr<D, B>,
+    current_cp: &MerkleCheckPoint,
+    expected_mr: &BlockHash,
+) -> Result<bool, ChainStorageError>
+where
+    D: Digest,
+    B: ArrayLike<Value = Hash>,
+{
+    let mmr = prune_mutable_mmr(&mmr)?;
+    let root = calculate_pruned_mmr_root(
+        &mmr,
+        current_cp.nodes_added().clone(),
+        current_cp.nodes_deleted().to_vec(),
+    )?;
+    Ok(expected_mr == &root)
 }
 
 impl<D> Clone for MemoryDatabase<D>

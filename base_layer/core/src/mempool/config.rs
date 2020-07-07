@@ -27,7 +27,7 @@ use crate::mempool::{
     reorg_pool::ReorgPoolConfig,
     unconfirmed_pool::UnconfirmedPoolConfig,
 };
-use bitflags::_core::time::Duration;
+use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use tari_common::{configuration::seconds, NetworkConfigPath};
 
