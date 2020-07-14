@@ -280,6 +280,7 @@ where
         let peer_manager = self.peer_manager.clone();
         let conn_man_notifier = self.conn_man_notifier.clone();
         let supported_protocols = self.our_supported_protocols.clone();
+        let user_agent = self.config.user_agent.clone();
         let noise_config = self.noise_config.clone();
         let allow_test_addresses = self.config.allow_test_addresses;
 
@@ -307,6 +308,7 @@ where
                         authenticated_public_key,
                         conn_man_notifier,
                         supported_protocols,
+                        user_agent,
                         allow_test_addresses,
                     );
 
@@ -354,6 +356,7 @@ where
         authenticated_public_key: CommsPublicKey,
         conn_man_notifier: mpsc::Sender<ConnectionManagerEvent>,
         our_supported_protocols: Vec<ProtocolId>,
+        user_agent: String,
         allow_test_addresses: bool,
     ) -> Result<PeerConnection, ConnectionManagerError>
     {
@@ -373,6 +376,7 @@ where
             &node_identity,
             CONNECTION_DIRECTION,
             &our_supported_protocols,
+            user_agent,
         )
         .await?;
 

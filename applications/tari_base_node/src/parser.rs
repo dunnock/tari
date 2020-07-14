@@ -855,7 +855,15 @@ impl Parser {
                     let num_peers = peers.len();
                     println!();
                     let mut table = Table::new();
-                    table.set_titles(vec!["NodeId", "Public Key", "Flags", "Role", "Status", "Added at"]);
+                    table.set_titles(vec![
+                        "NodeId",
+                        "Public Key",
+                        "Flags",
+                        "Role",
+                        "User Agent",
+                        "Status",
+                        "Added at",
+                    ]);
 
                     for peer in peers {
                         let status_str = {
@@ -880,6 +888,9 @@ impl Parser {
                                     "Base node"
                                 }
                             },
+                            Some(peer.user_agent)
+                                .map(|ua| if ua.is_empty() { "<unknown>".to_string() } else { ua })
+                                .unwrap(),
                             status_str,
                             peer.added_at.date(),
                         ]);
@@ -1004,7 +1015,15 @@ impl Parser {
                     println!();
                     let num_connections = conns.len();
                     let mut table = Table::new();
-                    table.set_titles(vec!["NodeId", "Public Key", "Address", "Direction", "Age", "Role"]);
+                    table.set_titles(vec![
+                        "NodeId",
+                        "Public Key",
+                        "Address",
+                        "Direction",
+                        "Age",
+                        "Role",
+                        "User Agent",
+                    ]);
                     for conn in conns {
                         let peer = peer_manager
                             .find_by_node_id(conn.peer_node_id())
@@ -1024,6 +1043,9 @@ impl Parser {
                                     "Base node"
                                 }
                             },
+                            Some(peer.user_agent)
+                                .map(|ua| if ua.is_empty() { "<unknown>".to_string() } else { ua })
+                                .unwrap()
                         ]);
                     }
 

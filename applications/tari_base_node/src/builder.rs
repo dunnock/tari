@@ -758,6 +758,7 @@ fn parse_peer_seeds(seeds: &[String]) -> Vec<Peer> {
             PeerFlags::default(),
             PeerFeatures::COMMUNICATION_NODE,
             &[],
+            Default::default(),
         );
         result.push(peer);
     }
@@ -1032,6 +1033,7 @@ async fn setup_base_node_comms(
         allow_test_addresses: true,
         listener_liveness_allowlist_cidrs: config.listener_liveness_allowlist_cidrs.clone(),
         listener_liveness_max_sessions: config.listnener_liveness_max_sessions,
+        user_agent: format!("tari/basenode/{}", env!("CARGO_PKG_VERSION")),
     };
 
     let seed_peers = parse_peer_seeds(&config.peer_seeds);
@@ -1069,6 +1071,7 @@ async fn setup_wallet_comms(
 {
     let comms_config = CommsConfig {
         node_identity,
+        user_agent: format!("tari/wallet/{}", env!("CARGO_PKG_VERSION")),
         transport_type: setup_wallet_transport_type(&config),
         datastore_path: config.wallet_peer_db_path.clone(),
         peer_database_name: "peers".to_string(),
@@ -1152,7 +1155,6 @@ where
                 auto_ping_interval: Some(Duration::from_secs(30)),
                 refresh_neighbours_interval: Duration::from_secs(3 * 60),
                 random_peer_selection_ratio: 0.4,
-                useragent: format!("tari/basenode/{}", env!("CARGO_PKG_VERSION")),
                 ..Default::default()
             },
             subscription_factory,
@@ -1190,7 +1192,6 @@ async fn register_wallet_services(
         .add_initializer(LivenessInitializer::new(
             LivenessConfig{
                 auto_ping_interval: None,
-                useragent: format!("tari/wallet/{}", env!("CARGO_PKG_VERSION")),
                 ..Default::default()
             },
             subscription_factory.clone(),
