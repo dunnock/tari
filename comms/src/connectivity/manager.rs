@@ -25,12 +25,12 @@ use super::{
     connection_stats::PeerConnectionStats,
     error::ConnectivityError,
     requester::{ConnectivityEvent, ConnectivityRequest},
-    selection,
     selection::ConnectivitySelection,
 };
 use crate::{
     connection_manager::{ConnectionManagerError, ConnectionManagerRequester},
     peer_manager::NodeId,
+    runtime::task,
     utils::datetime::format_duration,
     ConnectionManagerEvent,
     PeerConnection,
@@ -47,7 +47,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tari_shutdown::ShutdownSignal;
-use tokio::{sync::broadcast, task, task::JoinHandle, time};
+use tokio::{sync::broadcast, task::JoinHandle, time};
 
 const LOG_TARGET: &str = "comms::connectivity::manager";
 
@@ -357,21 +357,14 @@ impl ConnectivityManagerActor {
         selection: ConnectivitySelection,
     ) -> Result<Vec<PeerConnection>, ConnectivityError>
     {
-        use ConnectivitySelection::*;
         trace!(target: LOG_TARGET, "Selection query: {:?}", selection);
         debug!(
             target: LOG_TARGET,
             "Selecting from {} connected node peers",
             self.pool.count_connected_nodes()
         );
-        let conns = match selection {
-            RandomNodes(n, exclude) => selection::select_random_nodes(&self.pool, n, &exclude),
-            ClosestTo(dest_node_id, n, exclude) => {
-                let mut connections = selection::select_closest(&self.pool, &dest_node_id, &exclude);
-                connections.truncate(n);
-                connections.to_vec()
-            },
-        };
+
+        let conns = selection.select(&self.pool);
         debug!(target: LOG_TARGET, "Selected {} connections(s)", conns.len());
 
         Ok(conns.into_iter().cloned().collect())

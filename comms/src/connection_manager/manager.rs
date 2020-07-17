@@ -35,6 +35,7 @@ use crate::{
     peer_manager::{NodeId, NodeIdentity},
     protocol::{ProtocolEvent, ProtocolId, Protocols},
     runtime,
+    runtime::task,
     transports::Transport,
     types::DEFAULT_LISTENER_ADDRESS,
     PeerManager,
@@ -52,7 +53,7 @@ use multiaddr::Multiaddr;
 use std::{collections::HashMap, fmt, sync::Arc};
 use tari_shutdown::{Shutdown, ShutdownSignal};
 use time::Duration;
-use tokio::{sync::broadcast, task, time};
+use tokio::{sync::broadcast, time};
 
 const LOG_TARGET: &str = "comms::connection_manager::manager";
 
@@ -481,12 +482,8 @@ where
                 }
             },
             PeerDisconnected(node_id) => {
-                if self.active_connections.remove(&node_id).is_some() {
-                    self.publish_event(PeerDisconnected(node_id));
-                }
-            },
-            PeerConnectFailed(node_id, err) => {
-                self.publish_event(PeerConnectFailed(node_id, err));
+                self.active_connections.remove(&node_id);
+                self.publish_event(PeerDisconnected(node_id));
             },
             event => {
                 self.publish_event(event);
